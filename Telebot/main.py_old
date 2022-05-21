@@ -1,0 +1,87 @@
+import requests
+import json
+from flask import Flask,request,Response
+from bs4 import BeautifulSoup
+from random import randint, choice
+from flask_sslify import SSLify
+import time
+
+from lists import *
+
+
+app = Flask(__name__)
+sslify = SSLify(app)
+
+
+def hark_request(username, txt): # запрос текста 
+    board = choice(boards)
+    url = f'https://2ch.hk/{board}/index.json'
+    r = requests.get(url, headers={'Accept': 'application/json; charset=utf-8'}).json()
+    soup = BeautifulSoup(r['threads'][randint(1,4)]['posts'][randint(1,2)]['comment'], 'html.parser')
+    text = soup.get_text()
+    if text[:2] == ">>":
+        if board == 'b':
+            text = text[11:]
+        elif board == 'wh' or board =='sn' or board =='hi':
+            text = text[8:]
+        else:
+            text = text[9:]
+
+    if type(text[0]) == str:
+        text = text[0].lower() + text[1:]
+
+    if username == 'DudeAbides' and txt:
+        return f'{choice(denis_list)}, {choice(mezhdometie_list)}, {text}'
+    elif username == 'kaxeda':
+        return f'{choice(otto_list)}, {choice(mezhdometie_list)}, {text}'
+    elif username == 'TucoIlBrutto':
+        return f'{choice(maxim_list)}, {choice(mezhdometie_list)}, {text}'
+    elif username == 'vladsons':
+        return f'{choice(vlad_list)}, {choice(mezhdometie_list)}, {text}'
+    elif username == 'fortunately':
+        return f'{choice(yarik_list)}, {choice(mezhdometie_list)}, {text}'
+    else:
+        return text
+
+
+def send_message(chat_id,username,txt): # отправить сообщение в телегу
+    time.sleep(randint(1,3))
+    url = f'https://api.telegram.org/bot{token}/sendMessage'
+    payload = {'chat_id':chat_id, 'text':txt}
+    r = requests.post(url, json=payload)
+    return r
+    
+
+@app.route('/', methods=['POST', 'GET'])
+def index():
+    if request.method == 'POST':
+        msg = request.get_json()
+        chat_id,username,txt = parse_message(msg)
+        if txt:
+            if any(word in txt for word in poslovica_trigger):
+                poslovica = choice(poslovici)
+                poslovica_body = poslovica[0].lower() + poslovica[1:]
+                poslovica = f'{choice(poslovica_nachalo_list)} {poslovica_body}{choice(poslovica_konec_list)}'
+                send_message(chat_id,username,poslovica)
+            elif randint(1,100) < 15:
+                text = hark_request(username,txt)
+                send_message(chat_id,username,text)
+        return Response('OK', status=200)
+    else:
+        return '<h1>Вас приветствует дух Трахтенберга.</h1>'
+
+def parse_message(answer):
+    if 'message' in answer:
+        if 'text' in answer['message']:
+            chat_id = answer['message']['chat']['id']
+            if answer['message']['chat']['type'] == 'private':
+                username = answer['message']['chat']['username']
+            else:
+                username = answer['message']['from']['username']
+            txt = answer['message']['text']
+            return chat_id,username,txt
+    return '','',''
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
