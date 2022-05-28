@@ -1,6 +1,6 @@
 
 # tech vars
-token = '1031561812:AAHBnzvUnrcySKARYL_4PYV2hci3HcIzMHk'
+token = ''
 boards = ['b', 'sci', 'hw', 'po', 'news', 'vg', 'sn','nvr', 'biz', 'hi', 'ftb','diy','dom','ph','wrk','mu','w','em','zog','re','urk']
 chance_to_trig = 7
 
